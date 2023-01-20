@@ -15,7 +15,7 @@
 -- MAGIC 
 -- MAGIC ## Learning Objectives
 -- MAGIC By the end of this lesson, you should be able to:
--- MAGIC * Define and registering SQL UDFs
+-- MAGIC * Define and register SQL UDFs
 -- MAGIC * Describe the security model used for sharing SQL UDFs
 -- MAGIC * Use **`CASE`** / **`WHEN`** statements in SQL code
 -- MAGIC * Leverage **`CASE`** / **`WHEN`** statements in SQL UDFs for custom control flow
