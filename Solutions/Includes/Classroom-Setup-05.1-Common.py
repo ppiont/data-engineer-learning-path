@@ -127,16 +127,16 @@ def create_job_v1(self):
 def validate_job_v1_config(self):
     "Provided by DBAcademy, this function validates the configuration of the job"
     import json
-    
+
     job_config = self.get_job_config()
 
     job = self.client.jobs.get_by_name(job_config.job_name)
     assert job is not None, f"The job named \"{job_config.job_name}\" doesn't exist. Double check the spelling."
 
     # print(json.dumps(job, indent=4))
-    
+
     settings = job.get("settings")
-    
+
     if settings.get("format") == "SINGLE_TASK":
         notebook_path = settings.get("notebook_task", {}).get("notebook_path")
         actual_cluster_id = settings.get("existing_cluster_id", None)
@@ -147,24 +147,26 @@ def validate_job_v1_config(self):
 
         notebook_path = tasks[0].get("notebook_task", {}).get("notebook_path")
         actual_cluster_id = tasks[0].get("existing_cluster_id", None)
-        
+
         task_key = tasks[0].get("task_key", None)
         assert task_key == "Rest", f"Expected the first task to have the name \"Reset\", found \"{task_key}\""
-        
-        
+
+
     assert notebook_path == job_config.notebook, f"Invalid Notebook Path. Found \"{notebook_path}\", expected \"{job_config.reset_notebook}\" "
-    
+
     if not self.is_smoke_test():
         # Don't check the actual_cluster_id when running as a smoke test
-        
-        assert actual_cluster_id is not None, f"The first task is not configured to use the current All-Purpose cluster"
+
+        assert (
+            actual_cluster_id is not None
+        ), "The first task is not configured to use the current All-Purpose cluster"
 
         expected_cluster_id = dbgems.get_tags().get("clusterId")
         if expected_cluster_id != actual_cluster_id:
             actual_cluster = self.client.clusters.get(actual_cluster_id).get("cluster_name")
             expected_cluster = self.client.clusters.get(expected_cluster_id).get("cluster_name")
             assert actual_cluster_id == expected_cluster_id, f"The first task is not configured to use the current All-Purpose cluster, expected \"{expected_cluster}\", found \"{actual_cluster}\""
-        
+
     print("All tests passed!")
 
 
@@ -229,32 +231,34 @@ def create_job_v2(self):
 def validate_job_v2_config(self):
     "Provided by DBAcademy, this function validates the configuration of the job"
     import json
-    
+
     pipeline_config = self.get_pipeline_config()
     job_config = self.get_job_config()
 
     job = self.client.jobs.get_by_name(job_config.job_name)
     assert job is not None, f"The job named \"{job_config.job_name}\" doesn't exist. Double check the spelling."
-    
+
     settings = job.get("settings")
-    assert settings.get("format") == "MULTI_TASK", f"Expected two tasks, found 1."
+    assert settings.get("format") == "MULTI_TASK", "Expected two tasks, found 1."
 
     tasks = settings.get("tasks", [])
     assert len(tasks) == 2, f"Expected two tasks, found {len(tasks)}."
-    
-    
+
+
     # Reset Task
     task_name = tasks[0].get("task_key", None)
     assert task_name == "Reset", f"Expected the first task to have the name \"Reset\", found \"{task_name}\""
-    
+
     notebook_path = tasks[0].get("notebook_task", {}).get("notebook_path")
     assert notebook_path == job_config.notebook, f"Invalid Notebook Path for the first task. Found \"{notebook_path}\", expected \"{job_config.notebook}\" "
 
     if not self.is_smoke_test():
         # Don't check the actual_cluster_id when running as a smoke test
-        
+
         actual_cluster_id = tasks[0].get("existing_cluster_id", None)
-        assert actual_cluster_id is not None, f"The first task is not configured to use the current All-Purpose cluster"
+        assert (
+            actual_cluster_id is not None
+        ), "The first task is not configured to use the current All-Purpose cluster"
 
         expected_cluster_id = dbgems.get_tags().get("clusterId")
         if expected_cluster_id != actual_cluster_id:
@@ -262,26 +266,28 @@ def validate_job_v2_config(self):
             expected_cluster = self.client.clusters.get(expected_cluster_id).get("cluster_name")
             assert actual_cluster_id == expected_cluster_id, f"The first task is not configured to use the current All-Purpose cluster, expected \"{expected_cluster}\", found \"{actual_cluster}\""
 
-    
-    
+
+
     # Reset DLT
     task_name = tasks[1].get("task_key", None)
     assert task_name == "DLT", f"Expected the second task to have the name \"DLT\", found \"{task_name}\""
 
     actual_pipeline_id = tasks[1].get("pipeline_task", {}).get("pipeline_id", None)
-    assert actual_pipeline_id is not None, f"The second task is not configured to use a Delta Live Tables pipeline"
-    
+    assert (
+        actual_pipeline_id is not None
+    ), "The second task is not configured to use a Delta Live Tables pipeline"
+
     expected_pipeline = self.client.pipelines().get_by_name(pipeline_config.pipeline_name)
     actual_pipeline = self.client.pipelines().get_by_id(actual_pipeline_id)
     actual_name = actual_pipeline.get("spec").get("name", "Oops")
     assert actual_pipeline_id == expected_pipeline.get("pipeline_id"), f"The second task is not configured to use the correct pipeline, expected \"{pipeline_name}\", found \"{actual_name}\""
-    
+
     depends_on = tasks[1].get("depends_on", [])
     assert len(depends_on) > 0, f"The \"DLT\" task does not depend on the \"Reset\" task"
     assert len(depends_on) == 1, f"The \"DLT\" task depends on more than just the \"Reset\" task"
     depends_task_key = depends_on[0].get("task_key")
     assert depends_task_key == "Reset", f"The \"DLT\" task doesn't depend on the \"Reset\" task, found {depends_task_key}"
-    
+
     print("All tests passed!")
 
 

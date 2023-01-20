@@ -210,57 +210,65 @@ def validate_pipeline_config(self, pipeline_language):
     "Provided by DBAcademy, this function validates the configuration of the pipeline"
     import json
     from dbacademy.dbhelper import ClustersHelper
-    
+
     config = self.get_pipeline_config(pipeline_language)
     pipeline = self.client.pipelines().get_by_name(config.pipeline_name)
-    
+
     suite = DA.tests.new("Pipeline Config")
     suite.test_not_none(lambda: pipeline, description=f"Create the pipeline \"<b>{config.pipeline_name}</b>\".", hint="Double check the spelling.")
-    
+
     if pipeline is None: pipeline = {}
     spec = pipeline.get("spec", {})
-    
+
     storage = spec.get("storage", None)
     suite.test_equals(lambda: storage, DA.paths.storage_location, f"Set the storage location to \"<b>{DA.paths.storage_location}</b>\".", hint=f"Found \"<b>[[ACTUAL_VALUE]]</b>\".")
-    
+
     target = spec.get("target", None)
     suite.test_equals(lambda: target, DA.schema_name, f"Set the target to \"<b>{DA.schema_name}</b>\".", hint=f"Found \"<b>[[ACTUAL_VALUE]]</b>\".")
-    
+
     libraries = spec.get("libraries", [])
     libraries = [l.get("notebook", {}).get("path") for l in libraries]
-    
+
     def test_notebooks():
         if libraries is None: return False
         if len(libraries) != 3: return False
         for library in libraries:
             if library not in config.notebooks: return False
         return True
-    
+
     hint = f"""Found the following {len(libraries)} notebook(s):<ul style="margin-top:0">"""
     for library in libraries:
         hint += f"""<li>{library}</li>"""
     hint += "</ul>"
-    
+
     suite.test(test_function=test_notebooks, actual_value=libraries, description="Configure the three Notebook libraries.", hint=hint)
-    
-    suite.test_length(lambda: spec.get("configuration", {}), 2, 
-                      description=f"Set the two configuration parameters.", 
-                      hint=f"Found [[LEN_ACTUAL_VALUE]] configuration parameter(s).")
-    
+
+    suite.test_length(
+        lambda: spec.get("configuration", {}),
+        2,
+        description="Set the two configuration parameters.",
+        hint="Found [[LEN_ACTUAL_VALUE]] configuration parameter(s).",
+    )
+
     suite.test_equals(lambda: spec.get("configuration", {}).get("source"), config.source, 
                       description=f"Set the \"<b>source</b>\" configuration parameter to \"<b>{config.source}</b>\".", 
                       hint=f"Found \"<b>[[ACTUAL_VALUE]]</b>\".")
-    
+
     suite.test_equals(lambda: spec.get("configuration", {}).get("spark.master"), "local[*]", 
                       description=f"Set the \"<b>spark.master</b>\" configuration parameter to \"<b>local[*]</b>\".", 
                       hint=f"Found \"<b>[[ACTUAL_VALUE]]</b>\".")
-    
-    suite.test_length(lambda: spec.get("clusters"), expected_length=1, 
-                      description=f"Expected one and only one cluster definition.",
-                      hint="Edit the config via the JSON interface to remove the second+ cluster definitions")
-    
-    suite.test_is_none(lambda: spec.get("clusters")[0].get("autoscale"), 
-                       description=f"Autoscaling should be disabled.")
+
+    suite.test_length(
+        lambda: spec.get("clusters"),
+        expected_length=1,
+        description="Expected one and only one cluster definition.",
+        hint="Edit the config via the JSON interface to remove the second+ cluster definitions",
+    )
+
+    suite.test_is_none(
+        lambda: spec.get("clusters")[0].get("autoscale"),
+        description="Autoscaling should be disabled.",
+    )
 
     def test_cluster():
         cluster = spec.get("clusters")[0]
@@ -272,24 +280,28 @@ def validate_pipeline_config(self, pipeline_language):
             if policy_id != self.get_dlt_policy().get("policy_id"):
                 dbgems.print_warning("WARNING: Incorrect Policy", f"Expected the policy to be set to \"{ClustersHelper.POLICY_DLT_ONLY}\", found \"{policy_name}\".")
         return True
-        
+
     suite.test(test_function=test_cluster, actual_value=None, description=f"The cluster policy should be <b>\"{ClustersHelper.POLICY_DLT_ONLY}\"</b>.")
-    
-    suite.test_equals(lambda: spec.get("clusters")[0].get("num_workers"), 0, 
-                      description=f"The number of spark workers should be <b>0</b>.", 
-                      hint=f"Found [[ACTUAL_VALUE]] workers.")
+
+    suite.test_equals(
+        lambda: spec.get("clusters")[0].get("num_workers"),
+        0,
+        description="The number of spark workers should be <b>0</b>.",
+        hint="Found [[ACTUAL_VALUE]] workers.",
+    )
 
     suite.test_true(lambda: spec.get("development") != self.is_smoke_test(), 
                     description=f"The pipeline mode should be set to \"<b>Development</b>\".")
-    
+
     suite.test(test_function = lambda: {spec.get("channel") is None or spec.get("channel").upper() == "CURRENT"}, 
                actual_value=spec.get("channel"),
                description=f"The channel should be set to \"<b>Current</b>\".", 
                hint=f"Found \"<b>[[ACTUAL_VALUE]]</b>\"")
-    
-    suite.test_true(lambda: spec.get("photon"), 
-                    description=f"Photon should be enabled.")
-    
+
+    suite.test_true(
+        lambda: spec.get("photon"), description="Photon should be enabled."
+    )
+
     suite.test_false(lambda: spec.get("continuous"), 
                      description=f"Expected the Pipeline mode to be \"<b>Triggered</b>\".", 
                      hint=f"Found \"<b>Continuous</b>\".")

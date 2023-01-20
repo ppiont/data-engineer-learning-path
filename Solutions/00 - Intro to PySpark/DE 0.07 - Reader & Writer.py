@@ -256,7 +256,7 @@ display(events_df)
 
 # COMMAND ----------
 
-users_output_dir = DA.paths.working_dir + "/users.parquet"
+users_output_dir = f"{DA.paths.working_dir}/users.parquet"
 
 (users_df
  .write
@@ -333,7 +333,7 @@ print(DA.schema_name)
 
 # COMMAND ----------
 
-events_output_path = DA.paths.working_dir + "/delta/events"
+events_output_path = f"{DA.paths.working_dir}/delta/events"
 
 (events_df
  .write
