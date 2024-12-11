@@ -207,34 +207,36 @@ def create_job(self):
 def validate_job_config(self):
     "Provided by DBAcademy, this function validates the configuration of the job"
     import json
-    
+
     pipeline_name = self.get_pipeline_name()
     job_config = self.get_job_config()
 
     job = self.client.jobs.get_by_name(job_config.job_name)
     assert job is not None, f"The job named \"{job_name}\" doesn't exist. Double check the spelling."
-    
+
     settings = job.get("settings")
-    assert settings.get("format") == "MULTI_TASK", f"Expected three tasks, found 1."
+    assert settings.get("format") == "MULTI_TASK", "Expected three tasks, found 1."
 
     tasks = settings.get("tasks", [])
     assert len(tasks) == 3, f"Expected three tasks, found {len(tasks)}."
 
-    
-    
+
+
     # Batch-Job Task
     batch_task = tasks[0]
     task_name = batch_task.get("task_key", None)
     assert task_name == "Batch-Job", f"Expected the first task to have the name \"Batch-Job\", found \"{task_name}\""
-    
+
     notebook_path = batch_task.get("notebook_task", {}).get("notebook_path")
     assert notebook_path == job_config.notebook_1, f"Invalid Notebook Path for the first task. Found \"{notebook_path}\", expected \"{job_config.notebook_1}\" "
 
     if not self.is_smoke_test():
         # Don't check the actual_cluster_id when running as a smoke test
-        
+
         actual_cluster_id = batch_task.get("existing_cluster_id", None)
-        assert actual_cluster_id is not None, f"The first task is not configured to use the current All-Purpose cluster"
+        assert (
+            actual_cluster_id is not None
+        ), "The first task is not configured to use the current All-Purpose cluster"
 
         expected_cluster_id = dbgems.get_tags().get("clusterId")
         if expected_cluster_id != actual_cluster_id:
@@ -242,37 +244,39 @@ def validate_job_config(self):
             expected_cluster = self.client.clusters.get(expected_cluster_id).get("cluster_name")
             assert actual_cluster_id == expected_cluster_id, f"The first task is not configured to use the current All-Purpose cluster, expected \"{expected_cluster}\", found \"{actual_cluster}\""
 
-    
-    
+
+
     # DLT
     dlt_task = tasks[1]
     task_name = dlt_task.get("task_key", None)
     assert task_name == "DLT", f"Expected the second task to have the name \"DLT\", found \"{task_name}\""
 
     actual_pipeline_id = dlt_task.get("pipeline_task", {}).get("pipeline_id", None)
-    assert actual_pipeline_id is not None, f"The second task is not configured to use a Delta Live Tables pipeline"
-    
+    assert (
+        actual_pipeline_id is not None
+    ), "The second task is not configured to use a Delta Live Tables pipeline"
+
     expected_pipeline = self.client.pipelines().get_by_name(pipeline_name)
     actual_pipeline = self.client.pipelines().get_by_id(actual_pipeline_id)
     actual_name = actual_pipeline.get("spec").get("name", "Oops")
     assert actual_pipeline_id == expected_pipeline.get("pipeline_id"), f"The second task is not configured to use the correct pipeline, expected \"{pipeline_name}\", found \"{actual_name}\""
-    
+
     depends_on = dlt_task.get("depends_on", [])
     assert len(depends_on) > 0, f"The \"DLT\" task does not depend on the \"Batch-Job\" task"
     assert len(depends_on) == 1, f"The \"DLT\" task depends on more than just the \"Batch-Job\" task"
     depends_task_key = depends_on[0].get("task_key")
     assert depends_task_key == "Batch-Job", f"The \"DLT\" task doesn't depend on the \"Batch-Job\" task, found \"{depends_task_key}\"."
-    
-    
-    
+
+
+
     # Query Task
-    query_task = tasks[2] 
+    query_task = tasks[2]
     task_name = query_task.get("task_key", None)
     assert task_name == "Query-Results", f"Expected the third task to have the name \"Query-Results\", found \"{task_name}\""
-    
+
     notebook_path = query_task.get("notebook_task", {}).get("notebook_path")
     assert notebook_path == job_config.notebook_2, f"Invalid Notebook Path for the thrid task. Found \"{notebook_path}\", expected \"{job_config.notebook_2}\" "
-    
+
     depends_on = query_task.get("depends_on", [])
     assert len(depends_on) > 0, f"The \"Query-Results\" task does not depend on the \"DLT\" task"
     assert len(depends_on) == 1, f"The \"Query-Results\" task depends on more than just the \"DLT\" task"
@@ -281,9 +285,11 @@ def validate_job_config(self):
 
     if not self.is_smoke_test():
         # Don't check the actual_cluster_id when running as a smoke test
-        
+
         actual_cluster_id = query_task.get("existing_cluster_id", None)
-        assert actual_cluster_id is not None, f"The second task is not configured to use the current All-Purpose cluster"
+        assert (
+            actual_cluster_id is not None
+        ), "The second task is not configured to use the current All-Purpose cluster"
 
         expected_cluster_id = dbgems.get_tags().get("clusterId")
         if expected_cluster_id != actual_cluster_id:
@@ -311,7 +317,9 @@ class DataFactory:
         self.stream_path = stream_path
         self.source = f"{DA.paths.datasets}/healthcare/tracker/streaming"
         try:
-            self.curr_mo = 1 + int(max([x[1].split(".")[0] for x in dbutils.fs.ls(self.stream_path)]))
+            self.curr_mo = 1 + int(
+                max(x[1].split(".")[0] for x in dbutils.fs.ls(self.stream_path))
+            )
         except:
             self.curr_mo = 1
     

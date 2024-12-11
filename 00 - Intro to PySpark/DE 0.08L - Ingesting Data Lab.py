@@ -109,7 +109,7 @@ print("All test pass")
 # COMMAND ----------
 
 # TODO
-products_output_path = DA.paths.working_dir + "/delta/products"
+products_output_path = f"{DA.paths.working_dir}/delta/products"
 products_df.FILL_IN
 
 # COMMAND ----------

@@ -13,8 +13,8 @@ def __validate_libraries():
 
 def __install_libraries():
     global pip_command
-    
-    specified_version = f"v3.0.23"
+
+    specified_version = "v3.0.23"
     key = "dbacademy.library.version"
     version = spark.conf.get(key, specified_version)
 
@@ -22,24 +22,26 @@ def __install_libraries():
         print("** Dependency Version Overridden *******************************************************************")
         print(f"* This course was built for {specified_version} of the DBAcademy Library, but it is being overridden via the Spark")
         print(f"* configuration variable \"{key}\". The use of version v3.0.23 is not advised as we")
-        print(f"* cannot guarantee compatibility with this version of the course.")
+        print("* cannot guarantee compatibility with this version of the course.")
         print("****************************************************************************************************")
 
     try:
-        from dbacademy import dbgems  
+        from dbacademy import dbgems
         installed_version = dbgems.lookup_current_module_version("dbacademy")
         if installed_version == version:
             pip_command = "list --quiet"  # Skipping pip install of pre-installed python library
         else:
             print(f"WARNING: The wrong version of dbacademy is attached to this cluster. Expected {version}, found {installed_version}.")
-            print(f"Installing the correct version.")
+            print("Installing the correct version.")
             raise Exception("Forcing re-install")
 
     except Exception as e:
         # The import fails if library is not attached to cluster
-        if not version.startswith("v"): library_url = f"git+https://github.com/databricks-academy/dbacademy@{version}"
-        else: library_url = f"https://github.com/databricks-academy/dbacademy/releases/download/{version}/dbacademy-{version[1:]}-py3-none-any.whl"
-
+        library_url = (
+            f"https://github.com/databricks-academy/dbacademy/releases/download/{version}/dbacademy-{version[1:]}-py3-none-any.whl"
+            if version.startswith("v")
+            else f"git+https://github.com/databricks-academy/dbacademy@{version}"
+        )
         default_command = f"install --quiet --disable-pip-version-check {library_url}"
         pip_command = spark.conf.get("dbacademy.library.install", default_command)
 

@@ -107,7 +107,7 @@ def create_job(self):
 
     course_name = re.sub("[^a-zA-Z0-9]", "-", DA.course_name)
     while "--" in course_name: course_name = course_name.replace("--", "-")
-    
+
     params = {
         "name": f"{config.job_name}",
         "tags": {
@@ -128,14 +128,14 @@ def create_job(self):
             },
         }]
     }
-    
+
     for task in config.tasks:
         task_def = {
             "task_key": task.name,
         }
         params.get("tasks").append(task_def)
         if task.cluster is not None: task_def["job_cluster_key"] = task.cluster
-        
+
         if task.pipeline_id is not None: 
             task_def["pipeline_task"] = {"pipeline_id": task.pipeline_id}
         else: 
@@ -143,11 +143,9 @@ def create_job(self):
                 "notebook_path": task.resource,
                 "base_parameters": task.params
             }
-            
+
         if len(task.depends_on) > 0:
-            task_def["depends_on"] = list()
-            for key in task.depends_on: task_def["depends_on"].append({"task_key":key})
-    
+            task_def["depends_on"] = [{"task_key":key} for key in task.depends_on]
     instance_pool_id = client.clusters().get_current_instance_pool_id()
     cluster = params.get("job_clusters")[0].get("new_cluster")
     if instance_pool_id:
@@ -155,9 +153,9 @@ def create_job(self):
     else:
         node_type_id = client.clusters().get_current_node_type_id()
         cluster["node_type_id"] = node_type_id
-        
+
     # print(json.dumps(params, indent=4))
-    
+
     json_response = client.jobs().create(params)
     self.job_id = json_response["job_id"]
     print(f"Created job {self.job_id}")
